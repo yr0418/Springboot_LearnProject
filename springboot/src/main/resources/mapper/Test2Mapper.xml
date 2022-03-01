@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yr.springboot.demo03.mybatis.mapper.Test2Mapper">
+  <resultMap id="BaseResultMap" type="com.yr.springboot.demo03.mybatis.pojo.Test2">
+    <id column="t_num" jdbcType="INTEGER" property="tNum" />
+    <result column="t_name" jdbcType="VARCHAR" property="tName" />
+  </resultMap>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from test_2
+    where t_num = #{tNum,jdbcType=INTEGER}
+  </delete>
+
+  <insert id="insert" parameterType="com.yr.springboot.demo03.mybatis.pojo.Test2">
+    insert into test_2 (t_num, t_name)
+    values (#{tNum,jdbcType=INTEGER}, #{tName,jdbcType=VARCHAR})
+  </insert>
+
+  <update id="updateByPrimaryKey" parameterType="com.yr.springboot.demo03.mybatis.pojo.Test2">
+    update test_2
+    set t_name = #{tName,jdbcType=VARCHAR}
+    where t_num = #{tNum,jdbcType=INTEGER}
+  </update>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select t_num, t_name
+    from test_2
+    where t_num = #{tNum,jdbcType=INTEGER}
+  </select>
+  <select id="selectAll" resultMap="BaseResultMap">
+    select t_num, t_name
+    from test_2
+  </select>
+</mapper>

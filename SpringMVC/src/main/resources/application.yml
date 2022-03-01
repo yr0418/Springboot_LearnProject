@@ -1,0 +1,46 @@
+server:
+  port: 8888
+spring:
+  profiles:
+    active: dev
+  freemarker:
+    cache: false
+    request-context-attribute: request
+  mvc:
+    view:
+      prefix: /templates/
+      suffix: .ftl
+
+  datasource:
+    username: root
+    password: yr19990418
+    url: jdbc:mysql://127.0.0.1:3306/test?characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    tomcat:
+      default-transaction-isolation: 2
+    dbcp2:
+      default-transaction-isolation: 2
+  application:
+    name: SpringMVC
+
+logging:
+  file:
+    name: springboot.log
+  level:
+    com:
+      yr:
+        springmvc: DEBUG
+      jdbc: ERROR
+      jdbc.resultsettable: ERROR
+      org:
+        mybatis: INFO
+        springframework: INFO
+        springframework.security: INFO
+      root: INFO
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.yr.springmvc.mybatis.pojo
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
