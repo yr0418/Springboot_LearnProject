@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yr.springmvc.mybatis.mapper.UserMapper">
+  <resultMap id="BaseResultMap" type="com.yr.springmvc.mybatis.pojo.User">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="username" jdbcType="VARCHAR" property="username" />
+    <result column="note" jdbcType="VARCHAR" property="note" />
+    <result column="date" jdbcType="TIMESTAMP" property="date" />
+  </resultMap>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from user
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id"  parameterType="com.yr.springmvc.mybatis.pojo.User">
+    insert into user (id, username, note, 
+      `date`)
+    values (#{id,jdbcType=BIGINT}, #{username,jdbcType=VARCHAR}, #{note,jdbcType=VARCHAR}, 
+      #{date,jdbcType=TIMESTAMP})
+  </insert>
+  <update id="updateByPrimaryKey" parameterType="com.yr.springmvc.mybatis.pojo.User">
+    update user
+    set username = #{username,jdbcType=VARCHAR},
+      note = #{note,jdbcType=VARCHAR},
+      `date` = #{date,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select id, username, note, `date`
+    from user
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <select id="selectAll" resultMap="BaseResultMap">
+    select id, username, note, `date`
+    from user
+  </select>
+
+</mapper>

@@ -1,15 +1,10 @@
 server:
   port: 8888
 spring:
-  profiles:
-    active: dev
-  freemarker:
-    cache: false
-    request-context-attribute: request
-  mvc:
-    view:
-      prefix: /templates/
-      suffix: .ftl
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
 
   datasource:
     username: root
@@ -22,6 +17,8 @@ spring:
       default-transaction-isolation: 2
   application:
     name: SpringMVC
+
+
 
 logging:
   file:

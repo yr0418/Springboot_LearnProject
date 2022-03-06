@@ -471,7 +471,16 @@ public class UserTestService implements ApplicationContextAware {
 
 ### 3.2 隔离级别
 
-#### 1. 第一类丢失更新
+#### 1. 数据库事务的 4 个特性
+
+数据库事务的 4 个基本特征：
+
+1. 原子性：事务中包含的操作被看作一个整体的业务单元，这个业务单元中的操作要么全部成功，要么全部失败。
+2. 一致性：事务完成时，必须使得所有的数据都保持一致状态，在数据库中所有的修改都基于事务，保证数据的完整性。
+3. 持久性：事务结束后，所有的数据会固化到一个地方，如保存到磁盘中。
+4. 隔离性：多个应用程序线程同时访问统一数据，这样数据库同样的数据就会在各个不同的事务中被访问，这样会产生丢失更新，为了压制丢失更新的产生，数据库定义了隔离级别的概念，通过它的选择，可以在不同程度上压制丢失更新的产生。
+
+#### 2. 第一类丢失更新
 
 | 时刻 |           事务1           |        事务2         |
 | :--: | :-----------------------: | :------------------: |
@@ -489,7 +498,7 @@ T5 时刻回滚事务1，导致原本库存为 99 的变成了 100。事务2 的
 
 
 
-#### 2. 第二类丢失更新
+#### 3. 第二类丢失更新
 
 | 时刻 |          事务1           |        事务2         |
 | :--: | :----------------------: | :------------------: |
@@ -507,7 +516,7 @@ T5 时刻，事务1 提交的事务引发 事务2 提交结果的丢失。我们
 
 
 
-#### 3. 为什么使用隔离级别
+#### 4. 为什么使用隔离级别
 
 隔离级别的作用是为了不同程度上压制丢失更新。之所以不全部消除丢失更新，是同时考虑数据一致性和系统性能的结果。
 
@@ -517,7 +526,7 @@ T5 时刻，事务1 提交的事务引发 事务2 提交结果的丢失。我们
 
 
 
-#### 4. 4种隔离级别
+#### 5. 4种隔离级别
 
 ##### 1）未提交读
 
@@ -567,7 +576,7 @@ T3 时刻，事务2 尝试读取库存时被阻止，需要等待 事务1 完成
 
 
 
-#### 5. 隔离级别的使用
+#### 6. 隔离级别的使用
 
 ##### 1）使用隔离级别
 
@@ -1796,5 +1805,308 @@ public class TestController {
 
 
 
-### 7.2 SpringMVC 的配置项
+### 7.2 SpringMVC 的常用配置项
+
+为了支持对于 **SpringMVC** 的配置，Spring 提供了接口 **WebMvcConfigurer**，这是一个基于 Java 8 的接口，其大部分方法都是 default 类型，但他们都是空实现，这样开发者只需要实现这个接口，重写需要自定义的方法即可。
+
+在 Spring Boot 中，自定义是通过配置类 **WebMVCAutoConfiguration** 定义的，它有一个静态的内部类 **WebMVCAutoConfigurationAdapter**，通过它 Springboot 就自动配置了 SpringMVC 的初始化。
+
+在 **WebMVCAutoConfigurationAdapter** 中，它会读入 Spring 配置的 SpringMVC 的属性来初始化对应组件，这样便能在一定程度上实现自定义。Spring Boot 关于 SpringMVC 的常用配置项如下。
+
+```yaml
+spring:
+  mvc:
+    static-path-pattern:     # 指定静态资源路径
+    
+    view:
+      prefix: /templates/    # SpringMVC 视图前缀
+      suffix: .ftl           # SpringMVC 视图后缀
+      
+    dispatch-trace-request: false    # 是否让 FrameworkServlet doService 方法支持 TRACE 请求
+    dispatch-options-request: true   # 是否让 FrameworkServlet doService 方法支持 OPTIONS 请求
+
+    ignore-default-model-on-redirect: true    # 如果配置为default，那么它将忽略模型重定向的场景
+    
+    log-resolved-exception: false    # 是否启用警告日志异常解决
+    message-codes-resolver-format: prefix_error_code    # 消息代码的格式化策略
+    
+    throw-exception-if-no-handler-found: false    # 如果请求找不到处理器，是否抛出 NoHandlerFoundException 异常
+
+    async:
+      request-timeout:    # 异步请求超时时间
+
+    contentnegotiation:
+      favor-parameter: false  # 是否使用请求参数（默认参数为“format”）来确定请求的媒体类型
+      parameter-name:         # 当启用 favor-parameter 时，自定义参数名
+      media-types:            # 设置内容协商向媒体类型映射文件扩展名，例如：YML文本/YAML
+
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss   # 日期格式设置，带时间
+      date: dd/MM/yyyy                 # 日期格式，不带时间
+
+    formcontent:
+      filter:
+        enabled: true    # 配置过滤器拦截 HTTP PUT 和 HTTP PATCH 请求，并将其转换为 POST 请求
+
+    servlet:
+      load-on-startup: -1    # 启用 Spring Web 服务 Servlet 的优先顺序配置
+
+   
+```
+
+---
+
+
+
+## 8 深入 SpringMVC 开发
+
+### 8.1 处理器映射
+
+如果 web 工程使用了 SpringMVC，则它在启动阶段就会将注解 **@RequestMapping** 所配置的内容保存到处理器映射（HandlerMapping）机制中去，然后等待请求的到来，通过拦截请求信息和 HandlerMapping 进行匹配，找到对应的处理器（它包含控制器的逻辑），并将处理器及其拦截器保存到 HandlerExecutionChain 对象中，返回给 DispatcherServlet，这样 DispatcherServlet 就可以运行他们了。
+
+关于 **@RequestMapping** 的源码如下。通过配置项 **value** 和 **path** 来设置请求URL，从而让对应的请求映射到控制器或其方法上，在此基础上还可以通过其他配置项来缩小请求映射的范围。配置项 **value** 和 **path** 也能通过正则式来让方法匹配多个请求，但在实际开发中，这是不允许的。
+
+```java
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Mapping
+public @interface RequestMapping {
+
+   /**
+    * 配置请求映射名称
+    */
+   String name() default "";
+
+   /**
+    * 通过路径映射
+    */
+   @AliasFor("path")
+   String[] value() default {};
+
+   /**
+    * 通过路径映射回 path 配置项
+    */
+   @AliasFor("value")
+   String[] path() default {};
+
+   /**
+    * 限定只响应 HTTP 请求类型，如 GET、POST、HEAD、OPTIONS、PUT、TRACE
+    * 默认情况下，可响应所有的请求类型
+    */
+   RequestMethod[] method() default {};
+
+   /**
+    * 当存在对应的 HTTP 参数时才响应请求
+    */
+   String[] params() default {};
+
+   /**
+    * 限定请求头存在对应的参数时才响应
+    */
+   String[] headers() default {};
+
+   /**
+    * 限定 HTTP 请求体提交类型，如"application/json"、"text/html"
+    */
+   String[] consumes() default {};
+
+   /**
+    * 限定返回的内容类型，仅当 HTTP 请求头中的（Accept）类型中包含该指定类型时才返回
+    */
+   String[] produces() default {};
+
+}
+
+```
+
+---
+
+
+
+### 8.2 获取控制器参数
+
+#### 1. 在无注解下获取参数
+
+在无注解的情况下，SpringMVC 也可以获取参数，且参数允许为空，唯一的要求是参数名称和 HTTP 请求的参数名称一致。
+
+1. 请求URL：http://localhost:8888/test/test?intVal=1&longVal=2
+
+2. 返回值：
+
+   ```json
+   {
+     "intVal": 1,
+     "stringVal": null,
+     "longVal": 2
+   }
+   ```
+
+> **注意：** 在控制器中使用的 **@RestController** 注解，因此，在具体的方法上，无需再使用 **@ResponseBody** 注解。**@RestController** 注解中已有 **@ResponseBody** 注解。
+
+```java
+@RestController
+@RequestMapping(value ="test")
+public class TestController {
+
+    @GetMapping(value = "test")
+    public Map<String, Object> test(Integer intVal, Long longVal, String stringVal) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("intVal", intVal);
+        map.put("longVal", longVal);
+        map.put("stringVal", stringVal);
+        return map;
+    }
+}
+
+```
+
+
+
+#### 2. 使用 @RequestParam 注解获取参数
+
+使用 **@RequestParam** 注解来确定前后端参数名称的映射关系。在默认情况下，使用 **@RequestParam** 注解标识的参数是不能为空的，为让参数可以为空，配置其 **required** 属性为 **false**。同时，提供 **defaultvalue** 属性，为参数配置默认值。 
+
+1. 请求URL：http://localhost:8888/test/test?int_val=1&long_val=02&string_val=null
+
+2. 返回值：
+
+   ```json
+   {
+     "intVal": 1,
+     "stringVal": "null",
+     "longVal": 2
+   }
+   ```
+
+
+
+```java
+@GetMapping(value = "test")
+public Map<String, Object> test(
+        @RequestParam(name = "int_val", required = false, defaultValue = "0")Integer intVal,
+        @RequestParam(name = "long_val", required = true, defaultValue = "0")Long longVal,
+        @RequestParam(name = "string_val", required = false, defaultValue = "null")String stringVal) {
+    Map<String, Object> map = new HashMap<>();
+    map.put("intVal", intVal);
+    map.put("longVal", longVal);
+    map.put("stringVal", stringVal);
+    return map;
+}
+
+```
+
+
+
+#### 3. 使用@RequestBody注解传递 JSON
+
+前端为提交复杂的数据到后端，可将数据转换为 JSON 数据集，通过 HTTP 请求体提交到后端。
+
+1. 请求URL：http://localhost:8888/test/insert
+
+2. 返回值：
+
+   ```json
+   {
+     "id": 1,
+     "username": "杨睿",
+     "note": "黄米饭"
+   }
+   ```
+
+```java
+@PutMapping(value = "insert")
+public User insert(@RequestBody User user) {
+    userService.insert(user);
+    return user;
+}
+
+```
+
+
+
+#### 4. 通过URL传递参数
+
+通过处理器映射与注解 **@PathVariable** 的组合获取 URL 参数。处理器映射定位参数的位置和名称，@PathVariable 注解则可以通过名称来获取参数。
+
+1. 通过 **@GetMapping** 指定一个 URL，用 **{…}** 来标明参数的位置和名称。这里指定名称为 **id**。
+
+2. **@PathVariable** 配置的字符串为 **id**，对应 URL 的参数声明。
+
+3. 请求URL：http://localhost:8888/test/1
+
+4. 返回值：
+
+   ```json
+   {
+     "id": 1,
+     "username": "杨睿",
+     "note": "黄米饭"
+   }
+   ```
+
+```java
+@GetMapping(value = "/{id}")
+public User get(@PathVariable(name = "id") Long id) {
+    return userService.getById(id);
+}
+
+```
+
+
+
+#### 5. 获取格式化参数（时间参数）
+
+SpringMVC 提供对日期和数字类型的转换注解进行处理，分别是 **@DateTimeFormat** 和 **@NumberFormat**。但是这两个注解只能处理非 JSON 格式的请求。
+
+以 Swagger 测试为例，参数类型为 application/json，在调用存在上述两个注解的接口时，前端的参数无法传入后台。
+
+##### （1）时间参数的获取
+
+时间参数前添加 **@RequestBody** 注解。即可传递时间参数至后台。
+
+##### （2）时间参数的返回
+
+时间参数默认返回的是时间戳，可使用下列两种方法，将时间戳转换为对应的格式。
+
+> **注意：** 事实上理应返回时间戳，这样前台可根据需要，将时间戳转换为不同的格式。
+
+1. 修改配置文件，配置时间格式
+
+```json
+spring:
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+```
+
+
+
+2. 添加拦截器。添加拦截器并继承 WebMvcConfigurationSupport 后会覆盖@EnableAutoConfiguration关于WebMvcAutoConfiguration的配置！从而导致所有的Date返回都变成时间戳。为此手写时间转换的拦截器
+
+```java
+/**
+ * 使用此方法, 以下 spring-boot: jackson时间格式化 配置 将会失效
+ * spring.jackson.time-zone=GMT+8
+ * spring.jackson.date-format=yyyy-MM-dd HH:mm:ss
+ * 原因: 会覆盖 @EnableAutoConfiguration 关于 WebMvcAutoConfiguration 的配置
+ * */
+@Override
+protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+    MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+    ObjectMapper objectMapper = converter.getObjectMapper();
+    // 生成JSON时,将所有Long转换成String
+    SimpleModule simpleModule = new SimpleModule();
+    simpleModule.addSerializer(Long.class, ToStringSerializer.instance);
+    simpleModule.addSerializer(Long.TYPE, ToStringSerializer.instance);
+    objectMapper.registerModule(simpleModule);
+    // 时间格式化
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+    // 设置格式化内容
+    converter.setObjectMapper(objectMapper);
+    converters.add(0, converter);
+}
+
+```
 
